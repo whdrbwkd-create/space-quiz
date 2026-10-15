@@ -8,6 +8,8 @@ Orbit is a single-page space quiz implemented entirely in `index.html`. The docu
 
 There is no package manifest, build script, test runner, or linter configured. To run the app, open `index.html` directly in a browser. There is no automated single-test command; verify behavior manually by answering questions, advancing through the final result, and using “Explore again.”
 
+`.github/workflows/pages.yml` prepares the static site on pull requests to `main` and deploys it to GitHub Pages after pushes to `main` or manual dispatch. No compilation is needed: only `index.html` is copied into the Pages artifact. Keep the publish step in sync if the app gains separate assets.
+
 ## Code conventions
 
 - Keep the app dependency-free and self-contained in `index.html` unless the project structure is intentionally changed.
