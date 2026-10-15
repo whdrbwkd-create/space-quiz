@@ -70,6 +70,16 @@
     .result-label { font-size:10px; text-transform:uppercase; letter-spacing:1.8px; color:var(--muted); margin:6px 0 24px; }
     .result-stats { display:flex; justify-content:center; gap:34px; border-top:1px solid var(--line); padding-top:20px; margin-bottom:24px; font-size:12px; color:var(--muted); }
     .result-stats strong { display:block; font-size:20px; color:var(--ink); }
+    .missed-review { margin-top:28px; padding-top:22px; border-top:1px solid var(--line); text-align:left; }
+    .missed-review h3 { margin:0 0 14px; font-size:17px; letter-spacing:-.3px; }
+    .review-empty { margin:0; padding:15px; border:1px solid var(--line); border-radius:11px; background:var(--soft); color:var(--ink); font-size:13px; }
+    .review-list { display:grid; gap:12px; }
+    .review-item { padding:15px; border:1px solid var(--line); border-radius:11px; background:var(--soft); }
+    .review-item h4 { margin:0 0 10px; font-size:14px; line-height:1.45; }
+    .missed-review p { color:var(--ink); }
+    .review-item p { margin:5px 0 0; font-size:12px; line-height:1.5; overflow-wrap:anywhere; }
+    .review-item strong { color:var(--ink); }
+    .review-item .review-fact { margin-top:11px; padding-top:10px; border-top:1px solid var(--line); }
     @keyframes float { 50% { transform:translateY(-5px) rotate(3deg); } }
     @keyframes shake { 20%,60% { transform:translateX(-5px); } 40%,80% { transform:translateX(5px); } }
     @keyframes pop { 50% { transform:scale(1.035); } }
@@ -124,6 +134,10 @@
       <div class="result-score" id="result-score"></div>
       <div class="result-label">Your cosmic score</div>
       <div class="result-stats"><div><strong id="accuracy"></strong>Accuracy</div><div><strong id="correct-total"></strong>Correct</div><div><strong id="wrong-total"></strong>Missed</div></div>
+      <section class="missed-review" aria-labelledby="review-title">
+        <h3 id="review-title">Review your answers</h3>
+        <div id="review-content"></div>
+      </section>
       <button class="next" id="restart"><span>Explore again</span><span aria-hidden="true">↻</span></button>
     </section>
     <p class="bottom-note" id="bottom-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>No timer. Just you and the cosmos.</p>
@@ -146,6 +160,7 @@
     let index = 0;
     let score = 0;
     let answered = false;
+    let selections = [];
     function updateProgress(completed) {
       $("progress-count").textContent = `${completed} / ${questions.length}`;
       $("progress-fill").style.width = `${completed / questions.length * 100}%`;
@@ -186,6 +201,7 @@
       answered = true;
       const item = questions[index];
       const correct = choice === item.correct;
+      selections[index] = choice;
       if (correct) score++;
       Array.from($("answers").children).forEach((button, position) => {
         button.disabled = true;
@@ -209,6 +225,45 @@
       $("quiz").hidden = true;
       $("results").hidden = false;
       $("bottom-note").hidden = true;
+      const missed = questions
+        .map((item, questionIndex) => ({ item, questionIndex }))
+        .filter(({ item, questionIndex }) => selections[questionIndex] !== item.correct);
+      const reviewContent = $("review-content");
+      reviewContent.replaceChildren();
+      if (missed.length === 0) {
+        const emptyState = document.createElement("p");
+        emptyState.className = "review-empty";
+        emptyState.textContent = "Perfect score! You got every question right. Keep exploring the cosmos!";
+        reviewContent.append(emptyState);
+      } else {
+        const reviewList = document.createElement("div");
+        reviewList.className = "review-list";
+        missed.forEach(({ item, questionIndex }) => {
+          const entry = document.createElement("article");
+          entry.className = "review-item";
+          const question = document.createElement("h4");
+          question.textContent = `${questionIndex + 1}. ${item.question}`;
+          entry.append(question);
+          [
+            ["Your answer", item.answers[selections[questionIndex]]],
+            ["Correct answer", item.answers[item.correct]]
+          ].forEach(([label, answer]) => {
+            const detail = document.createElement("p");
+            const detailLabel = document.createElement("strong");
+            detailLabel.textContent = `${label}: `;
+            detail.append(detailLabel, document.createTextNode(answer));
+            entry.append(detail);
+          });
+          const fact = document.createElement("p");
+          fact.className = "review-fact";
+          const factLabel = document.createElement("strong");
+          factLabel.textContent = "Fact: ";
+          fact.append(factLabel, document.createTextNode(item.fact));
+          entry.append(fact);
+          reviewList.append(entry);
+        });
+        reviewContent.append(reviewList);
+      }
       const tier = score >= 8
         ? ["🚀", "You're a cosmic trailblazer!", "The universe is big, and so is your knowledge. Keep exploring."]
         : score >= 5
@@ -233,6 +288,8 @@
     $("restart").addEventListener("click", () => {
       index = 0;
       score = 0;
+      selections = [];
+      $("review-content").replaceChildren();
       $("quiz").hidden = false;
       $("results").hidden = true;
       $("bottom-note").hidden = false;
